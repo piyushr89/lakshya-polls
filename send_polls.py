@@ -35,7 +35,7 @@ GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID", "")
 
 BASE_URL  = "https://api.penpencil.co"
 CLIENT_ID = "5eb393ee95fab7468a79d189"
-BATCH_ID  = "6779345c20fa0756e4a7fd08"
+BATCH_ID = "6a3b6bd9b08a189f3e37cb59"
 
 HEADERS = {
     "Authorization": f"Bearer {PW_TOKEN}",
@@ -52,11 +52,9 @@ JSON_HEADERS = {**HEADERS, "Content-Type": "application/json"}
 # ─── GROUPS ───────────────────────────────────────────────────────────────────
 
 GROUPS = [
-    {"name": "Group 1", "groupId": "69cb7c5e4a6bd7893a91aa22", "conversationId": "69ce5c7c8a5087b50b14c482"},
-    {"name": "Group 2", "groupId": "69cb7c67e223436a272111c9", "conversationId": "69ce5d26b3e8f731557c9116"},
-    {"name": "Group 3", "groupId": "69cb7c6cd6e4a400b77ebccc", "conversationId": "69ce5f7b369fd47f199d51a8"},
-    {"name": "Group 4", "groupId": "69cb7c7036b09e3dea135a30", "conversationId": "69ce60754bd6bffed97b9eeb"},
-    {"name": "Group 5", "groupId": "69cb7c7426c54583a30f3039", "conversationId": "69ce60a65155c4ac4c289fea"},
+    {"name": "Group 1", "groupId": "6a6c68608e0d0ed8af94391e", "conversationId": "6a6c68731835c5e9d05b6ee9"},
+    {"name": "Group 2", "groupId": "6a6c68669f98d00a9f573d76", "conversationId": "6a6c68764555218f708ecc82"},
+    {"name": "Group 3", "groupId": "6a703e7927d4e967fe9107ef", "conversationId": "6a703e7a8779ade78b5f7348"},
 ]
 
 # ─── SUBJECT ROTATION ─────────────────────────────────────────────────────────
