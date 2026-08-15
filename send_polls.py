@@ -8,6 +8,11 @@ Modes:
   --mode=solution    (10 PM Mon-Fri)     → 5 solution messages → all groups
   --mode=college     (3 PM Mon-Wed-Fri)  → random IIT campus photo → all groups
 
+All student-facing text is now generated/written in Hindi, typed in the
+Roman/English alphabet (i.e. Hinglish-texting style, NOT Devanagari, NOT
+plain English). Internal admin email alerts are left in English since
+those are only for you.
+
 GitHub Secrets required:
   PW_TOKEN, GROQ_API_KEY, ALERT_EMAIL, GMAIL_APP_PWD
   GDRIVE_SA_JSON    — full JSON of Google service account key
@@ -214,7 +219,7 @@ def extract_questions_from_groq(raw: str) -> list:
 
         # Validate solution
         if not q.get("solution") or not str(q["solution"]).strip():
-            q["solution"] = "Refer to standard JEE solution."
+            q["solution"] = "Standard JEE solution dekh lo."
 
         q["options"] = [str(o) for o in opts[:4]]
         valid.append(q)
@@ -521,10 +526,16 @@ PYQ MATERIAL:
 {context_block}
 
 RULES:
-- Each question MUST include exam year and session tag e.g. [JEE Main 2022 June S1] or [JEE Adv 2019 P2]
+- LANGUAGE: Write the "question", "options", and "solution" fields in Hindi, but
+  typed using the Roman/English alphabet — the way Indian students text Hindi on
+  WhatsApp (Hinglish script, NOT Devanagari, NOT plain English).
+  Example style: "Ek gend ko 20 m/s ki speed se upar fenka jata hai..."
+  Keep numbers, units, chemical symbols, formulas, and variable names unchanged —
+  only the surrounding sentence structure should be Hindi.
+- Each question MUST include exam year and session tag e.g. [JEE Main 2022 June S1] or [JEE Adv 2019 P2] — keep this tag as-is in standard English format
 - 4 options per question (A B C D) — specific values, not placeholders
 - correct is 1-4 (1=A, 2=B, 3=C, 4=D)
-- solution: 3-5 step working in plain text
+- solution: 3-5 step working, written in Hindi (Roman script) as described above
 - CRITICAL: Do NOT use LaTeX backslashes like \\alpha \\frac \\theta \\sqrt
 - DO NOT USE QUESTIONS WHERE IMAGES ARE REFERRED OR PRESENT
 - Write math in plain text: "alpha" not "\\alpha", "x^2" not "x squared"
@@ -535,7 +546,7 @@ Return ONLY a JSON array of exactly 5 objects, no markdown, no backticks:
   {{
     "subject": "Physics",
     "year_tag": "[JEE Main 2023 Jan S2]",
-    "question": "[JEE Main 2023 Jan S2] full question text here",
+    "question": "[JEE Main 2023 Jan S2] full question text here, in Hindi (Roman script)",
     "options": ["A text", "B text", "C text", "D text"],
     "correct": 2,
     "solution": "Step 1: ...\\nStep 2: ...\\nAnswer: B"
@@ -572,7 +583,7 @@ Rules:
 - Mention today's subjects naturally
 - End with hype to answer the polls
 - Sound like a real caring teacher/mentor
-- Use Hinglish or English, fresh and different every day
+- LANGUAGE: Hindi written in Roman/English script only (like WhatsApp Hinglish texting) — NOT Devanagari, NOT plain English. Fresh and different every day
 - Don't use any quotes "" or ''
 
 Return ONLY the message text."""
@@ -588,16 +599,18 @@ Return ONLY the message text."""
 # ─── GROQ: MOTIVATION QUOTE ───────────────────────────────────────────────────
 
 def generate_motivation_quote():
-    system = """You write deeply authentic motivational quotes for JEE/IIT aspirants in ENGLISH ONLY.
+    system = """You write deeply authentic motivational quotes for JEE/IIT aspirants
+in HINDI, typed using the Roman/English alphabet — the way Indian students text
+Hindi on WhatsApp (Hinglish script). NOT Devanagari script. NOT plain English.
 
 Raw, real — like something a topper or struggling student actually thinks while studying late.
 
 RULES:
-- English only
+- Hindi (Roman script) only — e.g. style like "Har mock mein rank girta hai, lekin himmat nahi girni chahiye"
 - Specific to JEE: mock ranks, rank drops, late night studying, Kota pressure, PCM, parents sacrifices
 - 1-4 lines max. Punchy.
 - Make the student FEEL seen, not lectured
-- BANNED: "Never give up", "Believe in yourself", "Work hard", any generic cliche
+- BANNED: generic cliches — "Kabhi haar mat maano", "Khud par vishwas rakho", "Mehnat karo", or their English equivalents like "Never give up", "Believe in yourself", "Work hard"
 - AVOID these words entirely: doubt, quit, fail, die, kill, blood, 3 AM, midnight, alone, hopeless
 - Keep it intense but clean — PW has a content filter
 
@@ -639,7 +652,7 @@ Seed for variety: {date.today().toordinal()}
 Rules:
 - 1-2 lines max
 - Make the student WANT to be there
-- Casual, real tone in Hinglish
+- LANGUAGE: Hindi written in Roman/English script only (Hinglish texting style) — not plain English
 - No hashtags
 
 Return ONLY the caption text."""
@@ -666,7 +679,7 @@ Rules:
 - Sound like a caring mentor
 - Casual and warm tone
 - 1-2 lines max
-- Use English or Hinglish
+- LANGUAGE: Hindi written in Roman/English script only (like WhatsApp Hinglish texting) — not plain English
 - End with invitation to reply
 
 Return ONLY the message text."""
@@ -693,7 +706,7 @@ Rules:
 - Warm reflective tone
 - Make students feel safe to share honestly
 - 2-3 lines max
-- Use Hinglish or English
+- LANGUAGE: Hindi written in Roman/English script only (like WhatsApp Hinglish texting) — not plain English
 
 Return ONLY the message text."""
     resp = groq_client.chat.completions.create(
@@ -728,11 +741,11 @@ def run_motivation():
             time.sleep(1)
 
     if not quote:
-        quote = "Today is another chance to get closer to your IIT dream. Stay focused, stay consistent. You've got this! 💪"
+        quote = "Aaj ek aur mauka hai apne IIT dream ke aur kareeb jaane ka. Focused raho, consistent raho. Tum kar sakte ho! 💪"
         log("[WARN] Using fallback quote")
 
     log(f"Quote: {quote[:80]}...")
-    msg = f"🌅 Good Morning, Lakshya JEE 2027!\n\n{quote}\n\n— Keep going. Your IIT is waiting. 💪"
+    msg = f"🌅 Suprabhat, Lakshya JEE 2027!\n\n{quote}\n\n— Lage raho. Tumhara IIT tumhara wait kar raha hai. 💪"
 
     success = 0
     fail    = 0
@@ -747,7 +760,7 @@ def run_motivation():
             # Check if it's a token issue
             fail += 1
             # Try fallback if prohibited word
-            fallback = "🌅 Good Morning, Lakshya JEE 2027!\n\nStart strong today. Every problem you solve is one step closer to your IIT rank. Keep going! 💪"
+            fallback = "🌅 Suprabhat, Lakshya JEE 2027!\n\nAaj strong start karo. Jo bhi problem solve karoge, wo tumhe IIT rank ke ek kadam aur kareeb le jayega. Lage raho! 💪"
             ok2 = send_message(group, fallback)
             if ok2:
                 success += 1
@@ -913,7 +926,7 @@ def run_solution():
 
     for group in GROUPS:
         log(f"\n── {group['name']} ──")
-        send_message(group, "🎯 Solutions to today's quiz are here! Check your answers 👇")
+        send_message(group, "🎯 Aaj ke quiz ke solutions aa gaye hain! Apne answers check karo 👇")
         time.sleep(1)
 
         for i, q in enumerate(questions):
@@ -921,7 +934,7 @@ def run_solution():
             year_tag       = q.get("year_tag", "")
             opts           = q.get("options", [])
             correct        = q.get("correct", 1)
-            soln           = q.get("solution", "No solution available.")
+            soln           = q.get("solution", "Solution available nahi hai.")
             correct_letter = letters[correct - 1] if 1 <= correct <= 4 else "?"
             correct_text   = opts[correct - 1] if opts else ""
 
@@ -929,8 +942,8 @@ def run_solution():
                 f"Q{i+1} Solution [{subject}] {year_tag}\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"{q.get('question','')}\n\n"
-                f"✅ Correct Answer: ({correct_letter}) {correct_text}\n\n"
-                f"📝 Explanation:\n{soln}"
+                f"✅ Sahi Jawab: ({correct_letter}) {correct_text}\n\n"
+                f"📝 Samjhaaiye:\n{soln}"
             )
             send_message(group, sol_msg)
             time.sleep(1.5)
@@ -948,7 +961,7 @@ def run_checkin():
     if is_saturday:
         log("Saturday — generating weekly review...")
         message       = generate_weekly_review_message()
-        header        = "📊 Weekly Review Time!"
+        header        = "📊 Hafte ka Review Time!"
         email_subject = "✅ Weekly Review Sent"
     else:
         log("Generating daily checkin...")
