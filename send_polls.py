@@ -345,6 +345,7 @@ def send_poll(group, question):
             f"{BASE_URL}/v2/poll/create-poll",
             headers=JSON_HEADERS, json=create_payload, timeout=15
         )
+        log(f"  [DEBUG] create-poll → status={r1.status_code} body={r1.text[:500]}")
         if r1.status_code not in (200, 201):
             log(f"  ⚠️  Poll create failed → {group['name']}: {r1.status_code} {r1.text[:200]}")
             return
@@ -382,6 +383,7 @@ def send_poll(group, question):
             f"{BASE_URL}/v1/conversation/{group['conversationId']}/chat",
             headers=JSON_HEADERS, json=chat_payload, timeout=15
         )
+        log(f"  [DEBUG] chat post → status={r2.status_code} body={r2.text[:500]}")
         if r2.status_code in (200, 201):
             log(f"  ✅ Poll sent → {group['name']}: {question['question'][:55]}...")
         else:
