@@ -1,5 +1,5 @@
 """
-send_polls.py  —  Lakshya JEE 2027 Automation
+send_polls.py  —  Arjuna JEE 2.0 Automation
 ===============================================
 Modes:
   --mode=motivation  (8 AM daily)        → motivation quote text → all groups
@@ -395,8 +395,8 @@ def send_poll(group, question):
 # ─── GOOGLE DRIVE HELPERS ─────────────────────────────────────────────────────
 
 def get_questions_drive_filename() -> str:
-    """Filename includes today's date — e.g. lakshya_questions_2026-08-07.json"""
-    return f"lakshya_questions_{date.today()}.json"
+    """Filename includes today's date — e.g. arjuna_questions_2026-08-07.json"""
+    return f"arjuna_questions_{date.today()}.json"
 
 def get_drive_service(readonly=True):
     from google.oauth2 import service_account
@@ -745,7 +745,7 @@ def run_motivation():
         log("[WARN] Using fallback quote")
 
     log(f"Quote: {quote[:80]}...")
-    msg = f"🌅 Suprabhat, Lakshya JEE 2027!\n\n{quote}\n\n— Lage raho. Tumhara IIT tumhara wait kar raha hai. 💪"
+    msg = f"🌅 Suprabhat, Arjuna JEE 2.0!\n\n{quote}\n\n— Lage raho. Tumhara IIT tumhara wait kar raha hai. 💪"
 
     success = 0
     fail    = 0
@@ -760,7 +760,7 @@ def run_motivation():
             # Check if it's a token issue
             fail += 1
             # Try fallback if prohibited word
-            fallback = "🌅 Suprabhat, Lakshya JEE 2027!\n\nAaj strong start karo. Jo bhi problem solve karoge, wo tumhe IIT rank ke ek kadam aur kareeb le jayega. Lage raho! 💪"
+            fallback = "🌅 Suprabhat, Arjuna JEE 2.0!\n\nAaj strong start karo. Jo bhi problem solve karoge, wo tumhe IIT rank ke ek kadam aur kareeb le jayega. Lage raho! 💪"
             ok2 = send_message(group, fallback)
             if ok2:
                 success += 1
@@ -844,7 +844,7 @@ def run_quiz():
     if len(questions) < 3:
         msg = f"Quiz failed — only {len(questions)}/5 valid questions after {attempts} attempts."
         log(f"❌ {msg}")
-        send_alert("❌ Lakshya Quiz FAILED", msg)
+        send_alert("❌ Arjuna Quiz FAILED", msg)
         sys.exit(1)
 
     if len(questions) < 5:
@@ -1076,7 +1076,7 @@ def main():
         err = traceback.format_exc()
         log(f"❌ FATAL ERROR:\n{err}")
         send_alert(
-            f"❌ Lakshya Automation CRASHED ({args.mode} mode)",
+            f"❌ Arjuna Automation CRASHED ({args.mode} mode)",
             f"Error: {e}\n\nTraceback:\n{err}"
         )
         sys.exit(1)
