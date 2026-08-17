@@ -1,0 +1,14 @@
+{
+  "subject": "Maths",
+  "source": "Arjuna JEE Hindi 2.0 2027 — Sets (समुच्चय) PYQ Sheet",
+  "note": "Only 1 pilot question so far. Most of this sheet (Q1-5, Q9-16) uses dense set-builder/LaTeX notation (fractions, gcd, floor functions) that's riskier to hand-transcribe accurately from a rendered image than plain-text questions — flagged for careful proofreading before adding more from this sheet.",
+  "questions": [
+    {
+      "year_tag": "[JEE Main 2021, 26 Aug (Shift 1)]",
+      "question": "एक अस्पताल के कुल मरीजों में से 89% हृदय रोग से पीड़ित पाए गए और 98% फेफड़ों के संक्रमण से पीड़ित हैं। यदि उनमें से K% दोनों रोगों से पीड़ित हैं, तो K निम्नलिखित में से किस समुच्चय से संबंधित नहीं हो सकता:",
+      "options": ["{80, 83, 86, 89}", "{84, 86, 88, 90}", "{79, 81, 83, 85}", "{84, 87, 90, 93}"],
+      "correct": 3,
+      "solution": ""
+    }
+  ]
+}
