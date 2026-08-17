@@ -78,6 +78,7 @@ HISTORY_FILE     = Path("history.json")
 TODAY_Q_FILE     = Path("todays_questions.json")
 SENT_PHOTOS_FILE = Path("sent_photos.json")
 PDF_DIR          = Path("pdfs")
+BANK_DIR         = Path("pdfs/banks")
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -290,7 +291,7 @@ def upload_image(image_path: str) -> str:
     raise Exception(f"Upload failed: {r.status_code} {r.text[:300]}")
 
 
-def send_image_message(group, image_id, file_size_kb):
+def send_image_message(group, image_id, file_size_kb) -> bool:
     payload = {
         "batchId":   BATCH_ID,
         "groupId":   group["groupId"],
@@ -300,6 +301,7 @@ def send_image_message(group, image_id, file_size_kb):
         "filePages": 0,
         "fileSize":  file_size_kb,
     }
+    success = False
     try:
         r = requests.post(
             f"{BASE_URL}/v1/conversation/{group['conversationId']}/chat",
@@ -307,26 +309,29 @@ def send_image_message(group, image_id, file_size_kb):
         )
         if r.status_code in (200, 201):
             log(f"  ✅ Image sent → {group['name']}")
+            success = True
         else:
             log(f"  ⚠️  Image failed → {group['name']}: {r.status_code} {r.text[:150]}")
     except Exception as e:
         log(f"  ❌ Image error → {group['name']}: {e}")
     time.sleep(1)
+    return success
 
 
 # ─── PW: SEND POLL (TWO-STEP) ─────────────────────────────────────────────────
 
-def send_poll(group, question):
+def send_poll(group, question) -> bool:
+    """Returns True if the poll was successfully posted, False otherwise."""
     options = question.get("options", [])
     correct = question.get("correct")
 
     # Safety check
     if not options or len(options) < 4 or not correct or not (1 <= correct <= 4):
         log(f"  ⚠️  Skipping malformed poll: {str(question.get('question',''))[:50]}")
-        return
+        return False
     if not question.get("question", "").strip():
         log(f"  ⚠️  Skipping poll with empty question text")
-        return
+        return False
 
     # ── STEP 1: Create poll → get pollId ──────────────────────
     create_payload = {
@@ -348,15 +353,15 @@ def send_poll(group, question):
         log(f"  [DEBUG] create-poll → status={r1.status_code} body={r1.text[:500]}")
         if r1.status_code not in (200, 201):
             log(f"  ⚠️  Poll create failed → {group['name']}: {r1.status_code} {r1.text[:200]}")
-            return
+            return False
         poll_data = r1.json().get("data", {})
         poll_id   = poll_data.get("pollId")
         if not poll_id:
             log(f"  ⚠️  No pollId in response → {group['name']}: {r1.text[:150]}")
-            return
+            return False
     except Exception as e:
         log(f"  ❌ Poll create error → {group['name']}: {e}")
-        return
+        return False
 
     time.sleep(0.5)
 
@@ -378,6 +383,7 @@ def send_poll(group, question):
         "type":        "poll",
         "pollOptions": poll_options_str,
     }
+    success = False
     try:
         r2 = requests.post(
             f"{BASE_URL}/v1/conversation/{group['conversationId']}/chat",
@@ -386,12 +392,14 @@ def send_poll(group, question):
         log(f"  [DEBUG] chat post → status={r2.status_code} body={r2.text[:500]}")
         if r2.status_code in (200, 201):
             log(f"  ✅ Poll sent → {group['name']}: {question['question'][:55]}...")
+            success = True
         else:
             log(f"  ⚠️  Poll chat failed → {group['name']}: {r2.status_code} {r2.text[:200]}")
     except Exception as e:
         log(f"  ❌ Poll chat error → {group['name']}: {e}")
 
     time.sleep(1.5)
+    return success
 
 
 # ─── GOOGLE DRIVE HELPERS ─────────────────────────────────────────────────────
@@ -491,6 +499,78 @@ def download_drive_photo(service, file_id, dest_path):
     fh.close()
 
 
+# ─── VERIFIED PYQ BANK (hand-transcribed from official PW PDFs) ──────────────
+
+def load_question_bank(subject: str) -> list:
+    """Loads verified PYQ questions for a subject from pdfs/banks/<subject>.json
+    (transcribed + answer-key-checked from the official Arjuna JEE Hindi 2.0
+    PDFs). Returns [] if no bank file exists yet for that subject."""
+    fname = BANK_DIR / f"{subject.lower()}.json"
+    if not fname.exists():
+        return []
+    try:
+        data = json.loads(fname.read_text(encoding="utf-8"))
+        return data.get("questions", [])
+    except Exception as e:
+        log(f"[WARN] Failed to load bank for {subject}: {e}")
+        return []
+
+
+def pick_from_bank(subject: str, history: dict, already_picked: set) -> dict:
+    """Picks one not-yet-used question for `subject` from the local verified
+    bank. Returns None if the bank is empty or every question in it has
+    already been used (checked against history.json + this run's picks)."""
+    bank = load_question_bank(subject)
+    used = set(history.get("used", []))
+    random.shuffle(bank)
+    for q in bank:
+        qhash = str(hash(q.get("question", "")[:50]))
+        if qhash not in used and qhash not in already_picked:
+            q = {**q, "subject": subject}
+            already_picked.add(qhash)
+            return q
+    return None
+
+
+def generate_explanation(question: dict) -> str:
+    """For bank questions that don't have a written solution yet: asks Groq
+    to EXPLAIN the already-verified correct answer, not determine it. The
+    correct option itself comes from the official PW answer key, not from
+    Groq — this call can only get the explanation wording wrong, not the
+    answer itself."""
+    opts    = question.get("options", [])
+    correct = question.get("correct", 1)
+    letters = ["A", "B", "C", "D"]
+    correct_letter = letters[correct - 1] if 1 <= correct <= 4 else "?"
+    correct_text   = opts[correct - 1] if opts else ""
+
+    prompt = f"""This is a verified JEE {question.get('subject','')} PYQ — the answer is already confirmed from the official answer key. Write only a short, clear explanation of how this answer is reached.
+
+Question: {question.get('question','')}
+Options: {opts}
+Correct Answer: ({correct_letter}) {correct_text}
+
+Rules:
+- LANGUAGE: Write in Hindi using Devanagari script (देवनागरी), matching the question's own script — not Roman/English letters
+- 3-5 steps, plain text
+- Do not change or second-guess the answer — only explain why it is correct
+- No backslashes or LaTeX
+
+Return ONLY the explanation text (no JSON, no markdown, no backticks)."""
+
+    try:
+        resp = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+            max_tokens=400,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        log(f"[WARN] Explanation generation failed: {e}")
+        return "Solution jald hi add hoga."
+
+
 # ─── GROQ CLIENT ──────────────────────────────────────────────────────────────
 
 groq_client = Groq(api_key=GROQ_API_KEY)
@@ -528,16 +608,15 @@ PYQ MATERIAL:
 {context_block}
 
 RULES:
-- LANGUAGE: Write the "question", "options", and "solution" fields in Hindi, but
-  typed using the Roman/English alphabet — the way Indian students text Hindi on
-  WhatsApp (Hinglish script, NOT Devanagari, NOT plain English).
-  Example style: "Ek gend ko 20 m/s ki speed se upar fenka jata hai..."
+- LANGUAGE: Write the "question", "options", and "solution" fields in Hindi
+  using Devanagari script (देवनागरी) — matching how the official JEE Hindi-medium
+  papers are written. NOT Roman/English letters, NOT plain English.
   Keep numbers, units, chemical symbols, formulas, and variable names unchanged —
   only the surrounding sentence structure should be Hindi.
 - Each question MUST include exam year and session tag e.g. [JEE Main 2022 June S1] or [JEE Adv 2019 P2] — keep this tag as-is in standard English format
 - 4 options per question (A B C D) — specific values, not placeholders
 - correct is 1-4 (1=A, 2=B, 3=C, 4=D)
-- solution: 3-5 step working, written in Hindi (Roman script) as described above
+- solution: 3-5 step working, written in Hindi (Devanagari) as described above
 - CRITICAL: Do NOT use LaTeX backslashes like \\alpha \\frac \\theta \\sqrt
 - DO NOT USE QUESTIONS WHERE IMAGES ARE REFERRED OR PRESENT
 - Write math in plain text: "alpha" not "\\alpha", "x^2" not "x squared"
@@ -548,7 +627,7 @@ Return ONLY a JSON array of exactly 5 objects, no markdown, no backticks:
   {{
     "subject": "Physics",
     "year_tag": "[JEE Main 2023 Jan S2]",
-    "question": "[JEE Main 2023 Jan S2] full question text here, in Hindi (Roman script)",
+    "question": "[JEE Main 2023 Jan S2] full question text here, in Hindi (Devanagari)",
     "options": ["A text", "B text", "C text", "D text"],
     "correct": 2,
     "solution": "Step 1: ...\\nStep 2: ...\\nAnswer: B"
@@ -805,16 +884,30 @@ def run_quiz():
     subjects = list(SUBJECT_MIXES[weekday % len(SUBJECT_MIXES)])
     log(f"Today's subjects: {subjects}")
 
-    log("Generating questions via Groq...")
     questions = []
     attempts  = 0
 
-    while len(questions) < 5 and attempts < 8:
+    # ── Step 1: prefer verified questions from the local PYQ bank ──────────
+    already_picked = set()
+    needed_from_groq = []
+    for subj in subjects:
+        q = pick_from_bank(subj, history, already_picked)
+        if q:
+            questions.append(q)
+            log(f"  📚 Bank [{subj}]: {q.get('question','')[:60]}...")
+        else:
+            needed_from_groq.append(subj)
+
+    # ── Step 2: Groq fills whatever the bank couldn't cover ────────────────
+    if needed_from_groq:
+        log(f"Need {len(needed_from_groq)} more via Groq (bank empty/exhausted for: {needed_from_groq})...")
+
+    while len(questions) < 5 and attempts < 8 and needed_from_groq:
         attempts += 1
         needed = 5 - len(questions)
         log(f"Attempt {attempts}: need {needed} more question(s)...")
 
-        qs = generate_questions(subjects)
+        qs = generate_questions(needed_from_groq)
 
         # Add only valid questions not already collected
         existing_texts = {q["question"] for q in questions}
@@ -861,13 +954,20 @@ def run_quiz():
     intro = generate_intro_message(subjects)
     log(f"Intro: {intro[:80]}...")
 
+    total_sent = 0
+    total_fail = 0
+
     for group in GROUPS:
         log(f"\n── {group['name']} ──")
-        send_message(group, f"📢 {intro}")
+        ok = send_message(group, f"📢 {intro}")
+        total_sent += 1 if ok else 0
+        total_fail += 0 if ok else 1
         time.sleep(1)
         for i, q in enumerate(questions):
             log(f"  Poll {i+1}/5 [{q.get('subject','')}]")
-            send_poll(group, q)
+            ok = send_poll(group, q)
+            total_sent += 1 if ok else 0
+            total_fail += 0 if ok else 1
 
     # Save questions locally — daily.yml will upload as artifact
     questions_data = {"date": str(date.today()), "questions": questions}
@@ -883,15 +983,32 @@ def run_quiz():
     save_json(HISTORY_FILE, history)
     log(f"History updated ({len(history['used'])} entries).")
 
-    log("✅ Quiz mode complete.")
-    send_alert(
-        "✅ Polls Sent",
-        f"5 polls sent to all 5 groups.\nSubjects: {subjects}\nDate: {date.today()}\n\n"
-        + "\n".join(
-            f"Q{i+1} [{q.get('subject','')}]: {q.get('question','')[:80]}"
-            for i, q in enumerate(questions)
+    if total_sent == 0:
+        msg_alert = (
+            f"❌ Quiz FAILED — 0/{total_sent + total_fail} messages/polls sent.\n"
+            f"Most likely cause: PW_TOKEN expired.\n\n"
+            f"Fix: pw.live → any group chat → DevTools → Network tab → copy Authorization header → "
+            f"GitHub Secrets → PW_TOKEN → Update"
         )
-    )
+        log(f"❌ {msg_alert}")
+        send_alert("❌ Quiz FAILED — Token likely expired", msg_alert)
+        sys.exit(1)
+    elif total_fail > 0:
+        log(f"⚠️  Quiz sent with {total_fail} failures.")
+        send_alert(
+            f"⚠️ Quiz — {total_fail} sends failed",
+            f"Sent: {total_sent}\nFailed: {total_fail}\nSubjects: {subjects}\nDate: {date.today()}"
+        )
+    else:
+        log("✅ Quiz mode complete.")
+        send_alert(
+            "✅ Polls Sent",
+            f"5 polls sent to all groups.\nSubjects: {subjects}\nDate: {date.today()}\n\n"
+            + "\n".join(
+                f"Q{i+1} [{q.get('subject','')}]: {q.get('question','')[:80]}"
+                for i, q in enumerate(questions)
+            )
+        )
 
 
 # ─── MODE: SOLUTION (10 PM Mon-Fri) ──────────────────────────────────────────
@@ -926,9 +1043,14 @@ def run_solution():
     log(f"Loaded {len(questions)} questions.")
     letters = ["A", "B", "C", "D"]
 
+    total_sent = 0
+    total_fail = 0
+
     for group in GROUPS:
         log(f"\n── {group['name']} ──")
-        send_message(group, "🎯 Aaj ke quiz ke solutions aa gaye hain! Apne answers check karo 👇")
+        ok = send_message(group, "🎯 Aaj ke quiz ke solutions aa gaye hain! Apne answers check karo 👇")
+        total_sent += 1 if ok else 0
+        total_fail += 0 if ok else 1
         time.sleep(1)
 
         for i, q in enumerate(questions):
@@ -936,7 +1058,9 @@ def run_solution():
             year_tag       = q.get("year_tag", "")
             opts           = q.get("options", [])
             correct        = q.get("correct", 1)
-            soln           = q.get("solution", "Solution available nahi hai.")
+            soln = q.get("solution", "").strip()
+            if not soln:
+                soln = generate_explanation(q)
             correct_letter = letters[correct - 1] if 1 <= correct <= 4 else "?"
             correct_text   = opts[correct - 1] if opts else ""
 
@@ -944,14 +1068,33 @@ def run_solution():
                 f"Q{i+1} Solution [{subject}] {year_tag}\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"{q.get('question','')}\n\n"
-                f"✅ Sahi Jawab: ({correct_letter}) {correct_text}\n\n"
-                f"📝 Samjhaaiye:\n{soln}"
+                f"✅ सही जवाब: ({correct_letter}) {correct_text}\n\n"
+                f"📝 व्याख्या:\n{soln}"
             )
-            send_message(group, sol_msg)
+            ok = send_message(group, sol_msg)
+            total_sent += 1 if ok else 0
+            total_fail += 0 if ok else 1
             time.sleep(1.5)
 
-    log("✅ Solution mode complete.")
-    send_alert("✅ Solutions Sent", f"5 solutions sent to all 5 groups.\nDate: {date.today()}")
+    if total_sent == 0:
+        msg_alert = (
+            f"❌ Solutions FAILED — 0/{total_sent + total_fail} messages sent.\n"
+            f"Most likely cause: PW_TOKEN expired.\n\n"
+            f"Fix: pw.live → any group chat → DevTools → Network tab → copy Authorization header → "
+            f"GitHub Secrets → PW_TOKEN → Update"
+        )
+        log(f"❌ {msg_alert}")
+        send_alert("❌ Solutions FAILED — Token likely expired", msg_alert)
+        sys.exit(1)
+    elif total_fail > 0:
+        log(f"⚠️  Solutions sent with {total_fail} failures.")
+        send_alert(
+            f"⚠️ Solutions — {total_fail} messages failed",
+            f"Sent: {total_sent}\nFailed: {total_fail}\nDate: {date.today()}"
+        )
+    else:
+        log("✅ Solution mode complete.")
+        send_alert("✅ Solutions Sent", f"All solutions sent to all groups.\nDate: {date.today()}")
 
 
 # ─── MODE: CHECKIN (5 PM daily) ───────────────────────────────────────────────
@@ -973,15 +1116,39 @@ def run_checkin():
 
     log(f"Message: {message[:80]}...")
 
+    total_sent = 0
+    total_fail = 0
+
     for group in GROUPS:
         log(f"Sending to {group['name']}...")
         if header:
-            send_message(group, header)
+            ok = send_message(group, header)
+            total_sent += 1 if ok else 0
+            total_fail += 0 if ok else 1
             time.sleep(0.5)
-        send_message(group, message)
+        ok = send_message(group, message)
+        total_sent += 1 if ok else 0
+        total_fail += 0 if ok else 1
 
-    log("✅ Checkin mode complete.")
-    send_alert(email_subject, f"Checkin sent to all 5 groups.\nDate: {date.today()}")
+    if total_sent == 0:
+        msg_alert = (
+            f"❌ Checkin FAILED — 0/{total_sent + total_fail} messages sent.\n"
+            f"Most likely cause: PW_TOKEN expired.\n\n"
+            f"Fix: pw.live → any group chat → DevTools → Network tab → copy Authorization header → "
+            f"GitHub Secrets → PW_TOKEN → Update"
+        )
+        log(f"❌ {msg_alert}")
+        send_alert("❌ Checkin FAILED — Token likely expired", msg_alert)
+        sys.exit(1)
+    elif total_fail > 0:
+        log(f"⚠️  Checkin sent with {total_fail} failures.")
+        send_alert(
+            f"⚠️ Checkin — {total_fail} sends failed",
+            f"Sent: {total_sent}\nFailed: {total_fail}\nDate: {date.today()}"
+        )
+    else:
+        log("✅ Checkin mode complete.")
+        send_alert(email_subject, f"Checkin sent to all groups.\nDate: {date.today()}")
 
 
 # ─── MODE: COLLEGE (3 PM Mon-Wed-Fri) ────────────────────────────────────────
@@ -1032,11 +1199,18 @@ def run_college():
     log("Uploading to PW...")
     image_id = upload_image(tmp_path)
 
+    total_sent = 0
+    total_fail = 0
+
     for group in GROUPS:
         log(f"Sending to {group['name']}...")
-        send_image_message(group, image_id, file_size_kb)
+        ok = send_image_message(group, image_id, file_size_kb)
+        total_sent += 1 if ok else 0
+        total_fail += 0 if ok else 1
         time.sleep(0.5)
-        send_message(group, caption)
+        ok = send_message(group, caption)
+        total_sent += 1 if ok else 0
+        total_fail += 0 if ok else 1
 
     sent_data["sent"].append(photo["id"])
     sent_data["sent"] = [i for i in sent_data["sent"] if i in all_ids]
@@ -1044,11 +1218,29 @@ def run_college():
     log(f"Marked sent. Remaining: {len(all_photos) - len(sent_data['sent'])}/{len(all_photos)}")
 
     Path(tmp_path).unlink(missing_ok=True)
-    log("✅ College photo mode complete.")
-    send_alert(
-        "✅ College Photo Sent",
-        f"Photo: {photo['name']}\nCaption: {caption}\nDate: {date.today()}"
-    )
+
+    if total_sent == 0:
+        msg_alert = (
+            f"❌ College Photo FAILED — 0/{total_sent + total_fail} sends succeeded.\n"
+            f"Most likely cause: PW_TOKEN expired.\n\n"
+            f"Fix: pw.live → any group chat → DevTools → Network tab → copy Authorization header → "
+            f"GitHub Secrets → PW_TOKEN → Update"
+        )
+        log(f"❌ {msg_alert}")
+        send_alert("❌ College Photo FAILED — Token likely expired", msg_alert)
+        sys.exit(1)
+    elif total_fail > 0:
+        log(f"⚠️  College photo sent with {total_fail} failures.")
+        send_alert(
+            f"⚠️ College Photo — {total_fail} sends failed",
+            f"Sent: {total_sent}\nFailed: {total_fail}\nPhoto: {photo['name']}\nDate: {date.today()}"
+        )
+    else:
+        log("✅ College photo mode complete.")
+        send_alert(
+            "✅ College Photo Sent",
+            f"Photo: {photo['name']}\nCaption: {caption}\nDate: {date.today()}"
+        )
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
