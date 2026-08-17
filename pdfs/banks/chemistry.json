@@ -1,0 +1,42 @@
+{
+  "subject": "Chemistry",
+  "source": "Arjuna JEE Hindi 2.0 2027 — Some Basic Concepts of Chemistry (PYQ Sheet)",
+  "note": "Only MCQ-format questions (with 4 lettered options) are included — this sheet also has ~22 integer-answer questions that can't fit PW's 4-option poll format. Pilot batch only (Q1-Q5); more to be added.",
+  "questions": [
+    {
+      "year_tag": "[8 April, 2023 (Shift-II)]",
+      "question": "निम्न में से किनमें सार्थक अंकों की संख्या समान है?\n(A) 0.00253   (B) 1.0003\n(C) 15.0   (D) 163\nनीचे दिए गए विकल्पों में से सही उत्तर का चयन कीजिए:",
+      "options": ["केवल A, B और C", "केवल C और D", "केवल A, C और D", "केवल B और C"],
+      "correct": 3,
+      "solution": ""
+    },
+    {
+      "year_tag": "[03 April, 2025 (Shift-II)]",
+      "question": "आधिक्य तनु HCl के साथ अभिक्रिया पर STP पर 220 mL हाइड्रोजन गैस उत्पन्न करने के लिए आवश्यक मैग्नीशियम का द्रव्यमान है:\nदिया गया है : Mg का मोलर द्रव्यमान, 24 g mol⁻¹ है।",
+      "options": ["235.7 g", "0.24 mg", "236 mg", "2.444 g"],
+      "correct": 3,
+      "solution": ""
+    },
+    {
+      "year_tag": "[03 April, 2025 (Shift-I)]",
+      "question": "निम्न तत्वों में से प्रत्येक के 10⁻⁹ g में, किसमें परमाणुओं की संख्या अधिकतम होगी?\nतत्व : Pb, Po, Pr तथा Pt",
+      "options": ["Po", "Pr", "Pb", "Pt"],
+      "correct": 2,
+      "solution": ""
+    },
+    {
+      "year_tag": "[02 April, 2025 (Shift-I)]",
+      "question": "1.0 g कार्बनिक यौगिक (X) के पूर्ण दहन पर 1.46 g CO₂ और 0.567 g H₂O प्राप्त हुए। यौगिक (X) का मूलानुपाती सूत्र द्रव्यमान, ______ g है।\n(दिया गया है, g mol⁻¹ में मोलर द्रव्यमान :- C : 12, H : 1, O : 16)",
+      "options": ["30", "45", "60", "15"],
+      "correct": 1,
+      "solution": ""
+    },
+    {
+      "year_tag": "[23 Jan, 2025 (Shift-I)]",
+      "question": "CO₂ के 'x' mg प्रतिदर्श में से 10²¹ अणुओं को निकालने के बाद 2.8 × 10⁻³ mol CO₂ शेष रहता है। प्रारंभ में लिए गए CO₂ का द्रव्यमान है:\nदिया गया है: Nₐ = 6.02 × 10²³ mol⁻¹",
+      "options": ["48.2 mg", "98.3 mg", "150.4 mg", "196.2 mg"],
+      "correct": 4,
+      "solution": ""
+    }
+  ]
+}
