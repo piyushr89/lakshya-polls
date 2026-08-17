@@ -1,0 +1,42 @@
+{
+  "subject": "Physics",
+  "source": "Arjuna JEE Hindi 2.0 2027 — Units and Dimensions (JEE PYQ Practice Sheet)",
+  "note": "This sheet is mostly MCQ (~43 of 50) — a good candidate for full transcription later. Pilot batch only (Q1-Q5); more to be added.",
+  "questions": [
+    {
+      "year_tag": "[10 Jan, 2019 (Shift-I)]",
+      "question": "SI मात्रकों में किसी पदार्थ का घनत्व 128 kg m⁻³ है। मात्रकों की एक ऐसी प्रणाली में जहाँ लंबाई का मात्रक 25 cm और द्रव्यमान का मात्रक 50 g है, उस पदार्थ के घनत्व का संख्यात्मक मान होगा:",
+      "options": ["40", "16", "640", "410"],
+      "correct": 1,
+      "solution": ""
+    },
+    {
+      "year_tag": "[22 Jan, 2025 (Shift-II)]",
+      "question": "'F' में धारिता के लिए निम्नलिखित में से कौन-सा विमीय सूत्र सही है? यहाँ M, L, T और C क्रमशः द्रव्यमान, लंबाई, समय और आवेश के मात्रक हैं:",
+      "options": ["[F] = [C²M⁻¹L⁻²T²]", "[F] = [CM⁻²L⁻²T⁻²]", "[F] = [CM⁻¹L⁻²T²]", "[F] = [C²M⁻²L²T²]"],
+      "correct": 1,
+      "solution": ""
+    },
+    {
+      "year_tag": "[23 Jan, 2025 (Shift-I)]",
+      "question": "x-अक्ष पर गतिमान एक कण की स्थिति x(t) = A sin t + B cos²t + Ct² + D द्वारा दी गई है, जहाँ t समय है। (ABC)/D की विमा है:",
+      "options": ["L³T⁻²", "L²", "L²T⁻²", "L"],
+      "correct": 3,
+      "solution": ""
+    },
+    {
+      "year_tag": "[24 Jan, 2025 (Shift-II)]",
+      "question": "m द्रव्यमान के एक गतिमान पिंड की ऊर्जा E और संवेग p एक समीकरण द्वारा संबंधित हैं। यदि c प्रकाश की चाल को दर्शाता है, तो सही समीकरण की पहचान कीजिए:",
+      "options": ["E² = pc² + m²c⁴", "E² = pc² + m²c²", "E² = p²c² + m²c⁴", "E² = p²c² + m²c²"],
+      "correct": 3,
+      "solution": ""
+    },
+    {
+      "year_tag": "[29 Jan, 2025 (Shift-I)]",
+      "question": "नीचे दिया गया व्यंजक समय (t) के साथ वेग (v) के परिवर्तन को दर्शाता है, v = At² + Bt/(C+t)। ABC की विमा है:",
+      "options": ["M⁰L²T⁻²", "M⁰L¹T⁻³", "M⁰L²T⁻³", "M⁰L¹T⁻²"],
+      "correct": 3,
+      "solution": ""
+    }
+  ]
+}
