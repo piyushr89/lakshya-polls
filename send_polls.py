@@ -560,7 +560,7 @@ Return ONLY the explanation text (no JSON, no markdown, no backticks)."""
 
     try:
         resp = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.4,
             max_tokens=400,
@@ -574,6 +574,11 @@ Return ONLY the explanation text (no JSON, no markdown, no backticks)."""
 # ─── GROQ CLIENT ──────────────────────────────────────────────────────────────
 
 groq_client = Groq(api_key=GROQ_API_KEY)
+
+# Groq deprecated llama-3.3-70b-versatile (and llama-3.1-8b-instant) on
+# 17 Jun 2026. openai/gpt-oss-120b is Groq's recommended replacement.
+# If this model ever gets deprecated too, this is the only line to change.
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 def sample_pyq_text(subject, chars=3000):
@@ -636,7 +641,7 @@ Return ONLY a JSON array of exactly 5 objects, no markdown, no backticks:
 
     try:
         resp = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
             max_tokens=3000,
@@ -668,13 +673,17 @@ Rules:
 - Don't use any quotes "" or ''
 
 Return ONLY the message text."""
-    resp = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.9,
-        max_tokens=150,
-    )
-    return resp.choices[0].message.content.strip()
+    try:
+        resp = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.9,
+            max_tokens=150,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        log(f"[WARN] Intro message generation failed: {e}")
+        return f"Aaj ka quiz taiyar hai — {subject_str}! Chalo shuru karte hain 💪"
 
 
 # ─── GROQ: MOTIVATION QUOTE ───────────────────────────────────────────────────
@@ -706,7 +715,7 @@ Return ONLY JSON: {"quote": "quote text"}"""
     ]
     cat = categories[date.today().toordinal() % len(categories)]
     resp = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
         messages=[
             {"role": "system", "content": system},
             {"role": "user",   "content": f"Category: {cat}\nSeed: {date.today().toordinal()}"},
@@ -737,13 +746,17 @@ Rules:
 - No hashtags
 
 Return ONLY the caption text."""
-    resp = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.92,
-        max_tokens=100,
-    )
-    return resp.choices[0].message.content.strip()
+    try:
+        resp = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.92,
+            max_tokens=100,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        log(f"[WARN] Caption generation failed: {e}")
+        return "Ek din yahaan padhoge tum bhi 🎓"
 
 
 # ─── GROQ: DAILY CHECKIN ──────────────────────────────────────────────────────
@@ -764,13 +777,17 @@ Rules:
 - End with invitation to reply
 
 Return ONLY the message text."""
-    resp = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.92,
-        max_tokens=200,
-    )
-    return resp.choices[0].message.content.strip()
+    try:
+        resp = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.92,
+            max_tokens=200,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        log(f"[WARN] Checkin message generation failed: {e}")
+        return "Aaj ka din kaisa raha? Aaj ka target cover ho gaya? Batao! 😊"
 
 
 # ─── GROQ: WEEKLY REVIEW ──────────────────────────────────────────────────────
@@ -790,13 +807,17 @@ Rules:
 - LANGUAGE: Hindi written in Roman/English script only (like WhatsApp Hinglish texting) — not plain English
 
 Return ONLY the message text."""
-    resp = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.92,
-        max_tokens=250,
-    )
-    return resp.choices[0].message.content.strip()
+    try:
+        resp = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.92,
+            max_tokens=250,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        log(f"[WARN] Weekly review message generation failed: {e}")
+        return "Hafta kaisa raha? 1-10 mein rate karo aur batao kya achha raha, kya improve karna hai 🙂"
 
 
 # ─── MODE: MOTIVATION (8 AM daily) ───────────────────────────────────────────
