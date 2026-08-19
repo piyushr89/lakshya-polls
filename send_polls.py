@@ -256,7 +256,7 @@ def send_message(group, text) -> bool:
             time.sleep(1)
             return False
         else:
-            log(f"  ⚠️  Message failed → {group['name']}: {r.status_code} {r.text[:150]}")
+            log(f"  ⚠️  Message failed → {group['name']}: {r.status_code} {r.text[:200]} | text_sent={text[:200]!r}")
             time.sleep(1)
             return False
     except Exception as e:
@@ -948,7 +948,8 @@ def run_quiz():
     if questions:
         partial = {
             "date": str(date.today()),
-            "questions": questions[:5]
+            "questions": questions[:5],
+            "polls_confirmed_sent": False
         }
         save_json(TODAY_Q_FILE, partial)
         try:
@@ -991,7 +992,13 @@ def run_quiz():
             total_fail += 0 if ok else 1
 
     # Save questions locally — daily.yml will upload as artifact
-    questions_data = {"date": str(date.today()), "questions": questions}
+    questions_data = {
+        "date": str(date.today()),
+        "questions": questions,
+        "polls_confirmed_sent": total_sent > 0,
+        "sent_count": total_sent,
+        "fail_count": total_fail,
+    }
     save_json(TODAY_Q_FILE, questions_data)
     log(f"💾 Questions saved to {TODAY_Q_FILE}")
 
@@ -1048,12 +1055,31 @@ def run_solution():
     # Handle both formats: plain list (old) and {date, questions} (new)
     if isinstance(raw_data, list):
         questions = raw_data
+        polls_confirmed_sent = None  # old format predates this check
     elif isinstance(raw_data, dict):
         questions = raw_data.get("questions", [])
         saved_date = raw_data.get("date", "unknown")
+        polls_confirmed_sent = raw_data.get("polls_confirmed_sent")
         log(f"Questions from: {saved_date}")
     else:
         questions = []
+        polls_confirmed_sent = None
+
+    # ── Safety check: only send solutions if quiz mode actually confirmed
+    # the polls went out. Without this, a quiz-mode crash that saves a
+    # backup file before sending anything would cause solution mode to
+    # send "solutions" for polls students never saw. ─────────────────────
+    if polls_confirmed_sent is False:
+        sent_n = raw_data.get("sent_count", 0) if isinstance(raw_data, dict) else 0
+        msg = (
+            f"Today's quiz never actually sent polls to the groups (sent_count={sent_n}) — "
+            f"likely crashed partway through. Skipping solutions to avoid sending answers "
+            f"for polls students never saw. Re-run quiz mode manually if you still want "
+            f"today's questions sent, then re-run solution mode."
+        )
+        log(f"⚠️  {msg}")
+        send_alert("⚠️ Solution mode SKIPPED — quiz never confirmed sent", msg)
+        sys.exit(1)
 
     if not questions:
         log("❌ Questions file empty or missing.")
