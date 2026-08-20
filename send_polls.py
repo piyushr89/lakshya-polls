@@ -532,46 +532,9 @@ def pick_from_bank(subject: str, history: dict, already_picked: set) -> dict:
     return None
 
 
-def generate_explanation(question: dict) -> str:
-    """For bank questions that don't have a written solution yet: asks Groq
-    to EXPLAIN the already-verified correct answer, not determine it. The
-    correct option itself comes from the official PW answer key, not from
-    Groq — this call can only get the explanation wording wrong, not the
-    answer itself."""
-    opts    = question.get("options", [])
-    correct = question.get("correct", 1)
-    letters = ["A", "B", "C", "D"]
-    correct_letter = letters[correct - 1] if 1 <= correct <= 4 else "?"
-    correct_text   = opts[correct - 1] if opts else ""
-
-    prompt = f"""This is a verified JEE {question.get('subject','')} PYQ — the answer is already confirmed from the official answer key. Write only a short, clear explanation of how this answer is reached.
-
-Question: {question.get('question','')}
-Options: {opts}
-Correct Answer: ({correct_letter}) {correct_text}
-
-Rules:
-- LANGUAGE: Write in Hindi using Devanagari script (देवनागरी), matching the question's own script — not Roman/English letters
-- 3-5 steps, plain text
-- Do not change or second-guess the answer — only explain why it is correct
-- No backslashes or LaTeX
-
-Return ONLY the explanation text (no JSON, no markdown, no backticks)."""
-
-    try:
-        resp = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.4,
-            max_tokens=400,
-        )
-        return resp.choices[0].message.content.strip()
-    except Exception as e:
-        log(f"[WARN] Explanation generation failed: {e}")
-        return "Solution jald hi add hoga."
-
 
 # ─── GROQ CLIENT ──────────────────────────────────────────────────────────────
+
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 
@@ -613,7 +576,7 @@ PYQ MATERIAL:
 {context_block}
 
 RULES:
-- LANGUAGE: Write the "question", "options", and "solution" fields in Hindi
+- LANGUAGE: Write the "question" and "options" fields in Hindi
   using Devanagari script (देवनागरी) — matching how the official JEE Hindi-medium
   papers are written. NOT Roman/English letters, NOT plain English.
   Keep numbers, units, chemical symbols, formulas, and variable names unchanged —
@@ -621,7 +584,6 @@ RULES:
 - Each question MUST include exam year and session tag e.g. [JEE Main 2022 June S1] or [JEE Adv 2019 P2] — keep this tag as-is in standard English format
 - 4 options per question (A B C D) — specific values, not placeholders
 - correct is 1-4 (1=A, 2=B, 3=C, 4=D)
-- solution: 3-5 step working, written in Hindi (Devanagari) as described above
 - CRITICAL: Do NOT use LaTeX backslashes like \\alpha \\frac \\theta \\sqrt
 - DO NOT USE QUESTIONS WHERE IMAGES ARE REFERRED OR PRESENT
 - Write math in plain text: "alpha" not "\\alpha", "x^2" not "x squared"
@@ -634,8 +596,7 @@ Return ONLY a JSON array of exactly 5 objects, no markdown, no backticks:
     "year_tag": "[JEE Main 2023 Jan S2]",
     "question": "[JEE Main 2023 Jan S2] full question text here, in Hindi (Devanagari)",
     "options": ["A text", "B text", "C text", "D text"],
-    "correct": 2,
-    "solution": "Step 1: ...\\nStep 2: ...\\nAnswer: B"
+    "correct": 2
   }}
 ]"""
 
@@ -644,10 +605,14 @@ Return ONLY a JSON array of exactly 5 objects, no markdown, no backticks:
             model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=3000,
+            max_tokens=4000,
+            reasoning_effort="low",
             response_format={"type": "json_object"},
         )
-        raw = resp.choices[0].message.content.strip()
+        raw = (resp.choices[0].message.content or "").strip()
+        if not raw:
+            log("[WARN] Groq returned empty content (likely used up token budget on reasoning)")
+            return []
         log(f"[DEBUG] Groq raw (first 150): {raw[:150]}")
         return extract_questions_from_groq(raw)
     except Exception as e:
@@ -678,9 +643,14 @@ Return ONLY the message text."""
             model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.9,
-            max_tokens=150,
+            max_tokens=400,
+            reasoning_effort="low",
         )
-        return resp.choices[0].message.content.strip()
+        content = (resp.choices[0].message.content or "").strip()
+        if not content:
+            log("[WARN] Intro message came back empty (reasoning ate the token budget)")
+            return f"Aaj ka quiz taiyar hai — {subject_str}! Chalo shuru karte hain 💪"
+        return content
     except Exception as e:
         log(f"[WARN] Intro message generation failed: {e}")
         return f"Aaj ka quiz taiyar hai — {subject_str}! Chalo shuru karte hain 💪"
@@ -721,14 +691,22 @@ Return ONLY JSON: {"quote": "quote text"}"""
             {"role": "user",   "content": f"Category: {cat}\nSeed: {date.today().toordinal()}"},
         ],
         temperature=0.88,
-        max_tokens=200,
+        max_tokens=400,
+        reasoning_effort="low",
         response_format={"type": "json_object"},
     )
-    raw = resp.choices[0].message.content.strip()
+    raw = (resp.choices[0].message.content or "").strip()
+    if not raw:
+        # Raise so run_motivation()'s existing retry/fallback loop handles this
+        # the same way it handles any other Groq failure.
+        raise ValueError("Groq returned empty content (reasoning likely ate the token budget)")
     try:
-        return json.loads(raw).get("quote", raw)
+        quote = json.loads(raw).get("quote", "").strip()
     except Exception:
-        return raw
+        quote = raw
+    if not quote:
+        raise ValueError("Groq returned an empty quote")
+    return quote
 
 
 # ─── GROQ: COLLEGE CAPTION ────────────────────────────────────────────────────
@@ -751,9 +729,14 @@ Return ONLY the caption text."""
             model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.92,
-            max_tokens=100,
+            max_tokens=300,
+            reasoning_effort="low",
         )
-        return resp.choices[0].message.content.strip()
+        content = (resp.choices[0].message.content or "").strip()
+        if not content:
+            log("[WARN] Caption came back empty (reasoning ate the token budget)")
+            return "Ek din yahaan padhoge tum bhi 🎓"
+        return content
     except Exception as e:
         log(f"[WARN] Caption generation failed: {e}")
         return "Ek din yahaan padhoge tum bhi 🎓"
@@ -782,9 +765,14 @@ Return ONLY the message text."""
             model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.92,
-            max_tokens=200,
+            max_tokens=400,
+            reasoning_effort="low",
         )
-        return resp.choices[0].message.content.strip()
+        content = (resp.choices[0].message.content or "").strip()
+        if not content:
+            log("[WARN] Checkin message came back empty (reasoning ate the token budget)")
+            return "Aaj ka din kaisa raha? Aaj ka target cover ho gaya? Batao! 😊"
+        return content
     except Exception as e:
         log(f"[WARN] Checkin message generation failed: {e}")
         return "Aaj ka din kaisa raha? Aaj ka target cover ho gaya? Batao! 😊"
@@ -812,9 +800,14 @@ Return ONLY the message text."""
             model=GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.92,
-            max_tokens=250,
+            max_tokens=400,
+            reasoning_effort="low",
         )
-        return resp.choices[0].message.content.strip()
+        content = (resp.choices[0].message.content or "").strip()
+        if not content:
+            log("[WARN] Weekly review message came back empty (reasoning ate the token budget)")
+            return "Hafta kaisa raha? 1-10 mein rate karo aur batao kya achha raha, kya improve karna hai 🙂"
+        return content
     except Exception as e:
         log(f"[WARN] Weekly review message generation failed: {e}")
         return "Hafta kaisa raha? 1-10 mein rate karo aur batao kya achha raha, kya improve karna hai 🙂"
@@ -1105,9 +1098,6 @@ def run_solution():
             year_tag       = q.get("year_tag", "")
             opts           = q.get("options", [])
             correct        = q.get("correct", 1)
-            soln = q.get("solution", "").strip()
-            if not soln:
-                soln = generate_explanation(q)
             correct_letter = letters[correct - 1] if 1 <= correct <= 4 else "?"
             correct_text   = opts[correct - 1] if opts else ""
 
@@ -1115,8 +1105,7 @@ def run_solution():
                 f"Q{i+1} Solution [{subject}] {year_tag}\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"{q.get('question','')}\n\n"
-                f"✅ सही जवाब: ({correct_letter}) {correct_text}\n\n"
-                f"📝 व्याख्या:\n{soln}"
+                f"✅ सही जवाब: ({correct_letter}) {correct_text}"
             )
             ok = send_message(group, sol_msg)
             total_sent += 1 if ok else 0
