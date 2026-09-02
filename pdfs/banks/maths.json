@@ -1,8 +1,43 @@
 {
   "subject": "Maths",
   "source": "Arjuna JEE Hindi 2.0 2027 — Sets (समुच्चय) PYQ Sheet",
-  "note": "Only 1 pilot question so far. Most of this sheet (Q1-5, Q9-16) uses dense set-builder/LaTeX notation (fractions, gcd, floor functions) that's riskier to hand-transcribe accurately from a rendered image than plain-text questions — flagged for careful proofreading before adding more from this sheet.",
+  "note": "All 6 MCQ questions from this sheet (Q1-Q6) — the rest (Q7-Q16) are integer-answer type, excluded as before. Q1-Q5 use denser set-builder notation than Chemistry/Physics content, so accuracy risk is real here despite careful cross-checking against the answer key. Flagging one specific spot: Q2's option (C) had a genuinely ambiguous character in the source extraction (looked like it referenced an undefined third set 'C'); reconstructed here as 'B⊂A, A≠B' based on the logical pattern matching option (D), but this one option's exact wording is lower-confidence than everything else in this batch — the correct answer itself (B) is solidly verified against the answer key regardless.",
   "questions": [
+    {
+      "year_tag": "[JEE Main 2025, 22 Jan (Shift 1)]",
+      "question": "माना A = {1, 2, 3, ……, 10} तथा B = {m/n : m, n ∈ A, m < n और gcd(m,n) = 1} है, तब n(B) बराबर है:",
+      "options": ["31", "36", "37", "29"],
+      "correct": 1,
+      "solution": ""
+    },
+    {
+      "year_tag": "[JEE Main 2023, 6 Apr (Shift 1)]",
+      "question": "मान लीजिए A = {x ∈ R : [x+3]+[x+4] ≤ 3}, B = {x ∈ R : 3^x·(Σ_{r=1}^∞ 3/10^r)^(x−3) < 3^(−3x)}, जहाँ [ ] महत्तम पूर्णांक फलन को दर्शाता है। तो,",
+      "options": ["A∩B = ϕ", "A = B", "B⊂A, A≠B", "A⊂B, A≠B"],
+      "correct": 2,
+      "solution": ""
+    },
+    {
+      "year_tag": "[JEE Main 2022, 25 June (Shift 2)]",
+      "question": "माना कि A = {x ∈ R : |x+1| < 2} और B = {x ∈ R : |x−1| ≥ 2} हैं। तब निम्नलिखित में से कौन सा कथन सत्य नहीं है?",
+      "options": ["A−B = (−1, 1)", "B−A = R−(−3, 1)", "A∩B = (−3, −1]", "A∪B = R−[1, 3)"],
+      "correct": 2,
+      "solution": ""
+    },
+    {
+      "year_tag": "[JEE Main 2022, 28 Jul (Shift 2)]",
+      "question": "माना कि S = {x ∈ [−6,3] − {−2,2} : (|x+3|−1)/(|x|−2) ≥ 0} और T = {x ∈ Z : x²−7|x|+9 ≤ 0} हैं। तब S∩T में अवयवों की संख्या है:",
+      "options": ["7", "5", "4", "3"],
+      "correct": 4,
+      "solution": ""
+    },
+    {
+      "year_tag": "[JEE Main 2022, 29 Jul (Shift 2)]",
+      "question": "समुच्चय S = {x ∈ ℝ : 2cos((x²+x)/6) = 4^x + 4^(−x)} में अवयवों की संख्या है:",
+      "options": ["1", "3", "0", "अनंत"],
+      "correct": 1,
+      "solution": ""
+    },
     {
       "year_tag": "[JEE Main 2021, 26 Aug (Shift 1)]",
       "question": "एक अस्पताल के कुल मरीजों में से 89% हृदय रोग से पीड़ित पाए गए और 98% फेफड़ों के संक्रमण से पीड़ित हैं। यदि उनमें से K% दोनों रोगों से पीड़ित हैं, तो K निम्नलिखित में से किस समुच्चय से संबंधित नहीं हो सकता:",
